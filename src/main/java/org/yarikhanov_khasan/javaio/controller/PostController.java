@@ -2,11 +2,12 @@ package org.yarikhanov_khasan.javaio.controller;
 
 import org.yarikhanov_khasan.javaio.repositoryImpl.GsonPostRepoImpl;
 import org.yarikhanov_khasan.javaio.model.Post;
+import org.yarikhanov_khasan.javaio.repositoryInterface.PostRepo;
 
 import java.util.List;
 
 public class PostController {
-    private GsonPostRepoImpl postRepo = new GsonPostRepoImpl();
+    private final PostRepo postRepo = new GsonPostRepoImpl();
 
     public Post getById(Long id) {
         return postRepo.getById(id);

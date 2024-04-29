@@ -2,11 +2,12 @@ package org.yarikhanov_khasan.javaio.controller;
 
 import org.yarikhanov_khasan.javaio.model.Writer;
 import org.yarikhanov_khasan.javaio.repositoryImpl.GsonWriterRepoImpl;
+import org.yarikhanov_khasan.javaio.repositoryInterface.WriterRepo;
 
 import java.util.List;
 
 public class WriterController {
-    private GsonWriterRepoImpl writerRepo = new GsonWriterRepoImpl();
+    private final WriterRepo writerRepo = new GsonWriterRepoImpl();
 
     public Writer getById(Long id) {
         return writerRepo.getById(id);

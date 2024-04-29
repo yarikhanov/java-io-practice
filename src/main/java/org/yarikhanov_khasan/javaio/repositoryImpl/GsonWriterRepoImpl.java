@@ -16,15 +16,12 @@ import java.util.List;
 
 public class GsonWriterRepoImpl implements WriterRepo {
 
-    private final String FILE_PATH = "src/main/resources/writers.json";
-    private final Gson GSON = new Gson();
+    private static final String FILE_PATH = "src/main/resources/writers.json";
+    private static final Gson GSON = new Gson();
 
     @Override
     public Writer getById(Long id) {
-        try (JsonReader jsonReader = new JsonReader(new FileReader(FILE_PATH))) {
-            Type typeToken = new TypeToken<ArrayList<Writer>>() {
-            }.getType();
-            List<Writer> writers = GSON.fromJson(jsonReader, typeToken);
+        List<Writer> writers = getAllWriters();
 
             if (writers == null || writers.isEmpty()) {
                 return null;
@@ -33,28 +30,16 @@ public class GsonWriterRepoImpl implements WriterRepo {
             return writers.stream().filter(writer -> id.equals(writer.getId()) && writer.getStatus() == Status.ACTIVE)
                     .findFirst()
                     .orElse(null);
-        } catch (IOException e) {
-            System.err.println(e.getMessage() + e.getCause());
-            return null;
-        }
     }
 
     @Override
     public List<Writer> getAll() {
-        try (JsonReader jsonReader = new JsonReader(new FileReader(FILE_PATH))) {
-            Type typeToken = new TypeToken<ArrayList<Writer>>() {
-            }.getType();
-
-            return GSON.fromJson(jsonReader, typeToken);
-        } catch (IOException e) {
-            System.err.println(e.getMessage() + e.getCause());
-            return null;
-        }
+        return getAllWriters();
     }
 
     @Override
     public Writer save(Writer writer) {
-        List<Writer> writersList = getAll();
+        List<Writer> writersList = getAllWriters();
 
         if (writersList == null || writersList.isEmpty()) {
             writersList = new ArrayList<>();
@@ -81,26 +66,22 @@ public class GsonWriterRepoImpl implements WriterRepo {
 
     @Override
     public Writer update(Writer writerToUpdate) {
-        List<Writer> writersList = getAll();
+        List<Writer> writersList = getAllWriters();
 
         if (writersList == null || writersList.isEmpty()) {
             System.err.println("Объект с ID " + writerToUpdate.getId() + " не найден");
             return null;
         }
-
-        for (int i = 0; i < writersList.size(); i++) {
-            Writer writer = writersList.get(i);
-            if (writerToUpdate.getId().equals(writer.getId())) {
+        writersList.forEach(writer -> {
+            if (writer.getId().equals(writerToUpdate.getId())) {
                 if (writer.getStatus() == Status.ACTIVE) {
-                    writersList.set(i, writerToUpdate);
-                    break;
+                    writer = writerToUpdate;
                 } else {
                     System.err.println("Нельзя обновить удаленный объект c ID " + writerToUpdate.getId());
-                    return null;
+
                 }
             }
-        }
-
+        });
         try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
             GSON.toJson(writersList, fileWriter);
         } catch (IOException e) {
@@ -112,30 +93,40 @@ public class GsonWriterRepoImpl implements WriterRepo {
 
     @Override
     public void deleteById(Long id) {
-        List<Writer> writersList = getAll();
+        List<Writer> writersList = getAllWriters();
 
         if (writersList == null || writersList.isEmpty()) {
             System.err.println("Объект с ID " + id + " не найден");
             return;
         }
 
-        for (Writer writer : writersList) {
+        writersList.forEach(writer -> {
             if (writer.getId().equals(id)) {
                 if (writer.getStatus() == Status.ACTIVE) {
                     writer.setStatus(Status.DELETED);
-                    break;
                 } else {
                     System.err.println("Объект с ID " + id + " был удален");
-                    return;
+
                 }
             }
-        }
-
+        });
         try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
             GSON.toJson(writersList, fileWriter);
             System.out.println("Объект с ID " + id + " успешно удален");
         } catch (IOException e) {
             System.err.println(e.getMessage() + e.getCause());
+        }
+    }
+
+    private List<Writer> getAllWriters() {
+        try (JsonReader jsonReader = new JsonReader(new FileReader(FILE_PATH))) {
+            Type typeToken = new TypeToken<ArrayList<Writer>>() {
+            }.getType();
+
+            return GSON.fromJson(jsonReader, typeToken);
+        } catch (IOException e) {
+            System.err.println(e.getMessage() + e.getCause());
+            return null;
         }
     }
 }

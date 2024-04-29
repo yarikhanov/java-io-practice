@@ -12,12 +12,12 @@ import java.util.List;
 import java.util.Scanner;
 
 public class WriterView {
-    private WriterController writerController = new WriterController();
+    private final WriterController writerController = new WriterController();
 
-    private PostController postController = new PostController();
+    private final PostController postController = new PostController();
 
-    private LabelController labelController = new LabelController();
-    private Scanner scanner = new Scanner(System.in);
+    private final LabelController labelController = new LabelController();
+    private final Scanner scanner = new Scanner(System.in);
 
 
     public void run() {

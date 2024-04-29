@@ -16,15 +16,12 @@ import java.util.List;
 
 public class GsonLabelRepoImpl implements LabelRepo {
 
-    private final String FILE_PATH = "src/main/resources/labels.json";
-    private final Gson GSON = new Gson();
+    private static final String FILE_PATH = "src/main/resources/labels.json";
+    private static final Gson GSON = new Gson();
 
     @Override
     public Label getById(Long id) {
-        try (JsonReader jsonReader = new JsonReader(new FileReader(FILE_PATH))) {
-            Type typeToken = new TypeToken<ArrayList<Label>>() {
-            }.getType();
-            List<Label> labels = GSON.fromJson(jsonReader, typeToken);
+        List<Label> labels = getAllLabels();
 
             if (labels == null || labels.isEmpty()) {
                 return null;
@@ -33,23 +30,11 @@ public class GsonLabelRepoImpl implements LabelRepo {
             return labels.stream().filter(label -> id.equals(label.getId()) && label.getStatus() == Status.ACTIVE)
                     .findFirst()
                     .orElse(null);
-        } catch (IOException e) {
-            System.err.println(e.getMessage() + e.getCause());
-            return null;
-        }
     }
 
     @Override
     public List<Label> getAll() {
-        try (JsonReader jsonReader = new JsonReader(new FileReader(FILE_PATH))) {
-            Type typeToken = new TypeToken<ArrayList<Label>>() {
-            }.getType();
-
-            return GSON.fromJson(jsonReader, typeToken);
-        } catch (IOException e) {
-            System.err.println(e.getMessage() + e.getCause());
-            return null;
-        }
+        return getAllLabels();
     }
 
     @Override
@@ -81,26 +66,21 @@ public class GsonLabelRepoImpl implements LabelRepo {
 
     @Override
     public Label update(Label labelToUpdate) {
-        List<Label> labelList = getAll();
+        List<Label> labelList = getAllLabels();
 
         if (labelList == null || labelList.isEmpty()) {
             System.err.println("Объект с ID " + labelToUpdate.getId() + " не найден");
             return null;
         }
-
-        for (int i = 0; i < labelList.size(); i++) {
-            Label label = labelList.get(i);
-            if (labelToUpdate.getId().equals(label.getId())) {
+        labelList.forEach(label -> {
+            if (label.getId().equals(labelToUpdate.getId())) {
                 if (label.getStatus() == Status.ACTIVE) {
-                    labelList.set(i, labelToUpdate);
-                    break;
+                    label = labelToUpdate;
                 } else {
                     System.err.println("Нельзя обновить удаленный объект c ID " + labelToUpdate.getId());
-                    return null;
                 }
             }
-        }
-
+        });
         try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
             GSON.toJson(labelList, fileWriter);
         } catch (IOException e) {
@@ -112,30 +92,38 @@ public class GsonLabelRepoImpl implements LabelRepo {
 
     @Override
     public void deleteById(Long id) {
-        List<Label> labelList = getAll();
+        List<Label> labelList = getAllLabels();
 
         if (labelList == null || labelList.isEmpty()) {
             System.err.println("Объект с ID " + id + " не найден");
             return;
         }
 
-        for (Label label : labelList) {
+        labelList.forEach(label -> {
             if (label.getId().equals(id)) {
                 if (label.getStatus() == Status.ACTIVE) {
-                    label.setStatus(Status.DELETED);
-                    break;
-                } else {
                     System.err.println("Объект с ID " + id + " был удален");
-                    return;
+
                 }
             }
-        }
-
+        });
         try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
             GSON.toJson(labelList, fileWriter);
             System.out.println("Объект с ID " + id + " успешно удален");
         } catch (IOException e) {
             System.err.println(e.getMessage() + e.getCause());
+        }
+    }
+
+    private List<Label> getAllLabels() {
+        try (JsonReader jsonReader = new JsonReader(new FileReader(FILE_PATH))) {
+            Type typeToken = new TypeToken<ArrayList<Label>>() {
+            }.getType();
+
+            return GSON.fromJson(jsonReader, typeToken);
+        } catch (IOException e) {
+            System.out.println(e.getMessage() + e.getCause());
+            return null;
         }
     }
 }

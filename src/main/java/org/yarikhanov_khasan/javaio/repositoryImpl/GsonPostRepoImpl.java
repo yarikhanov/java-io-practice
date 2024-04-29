@@ -7,6 +7,7 @@ import org.yarikhanov_khasan.javaio.model.Post;
 import org.yarikhanov_khasan.javaio.model.Status;
 import org.yarikhanov_khasan.javaio.repositoryInterface.PostRepo;
 
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -16,15 +17,12 @@ import java.util.List;
 
 public class GsonPostRepoImpl implements PostRepo {
 
-    private final String FILE_PATH = "src/main/resources/posts.json";
-    private final Gson GSON = new Gson();
+    private static final String FILE_PATH = "src/main/resources/posts.json";
+    private static final Gson GSON = new Gson();
 
     @Override
     public Post getById(Long id) {
-        try (JsonReader jsonReader = new JsonReader(new FileReader(FILE_PATH))) {
-            Type typeToken = new TypeToken<ArrayList<Post>>() {
-            }.getType();
-            List<Post> posts = GSON.fromJson(jsonReader, typeToken);
+            List<Post> posts = getAllPosts();
 
             if (posts == null || posts.isEmpty()) {
                 return null;
@@ -33,46 +31,36 @@ public class GsonPostRepoImpl implements PostRepo {
             return posts.stream().filter(post -> id.equals(post.getId()) && post.getStatus() == Status.ACTIVE)
                     .findFirst()
                     .orElse(null);
-        } catch (IOException e) {
-            System.err.println(e.getMessage() + e.getCause());
-            return null;
-        }
     }
 
     @Override
     public List<Post> getAll() {
-        try (JsonReader jsonReader = new JsonReader(new FileReader(FILE_PATH))) {
-            Type typeToken = new TypeToken<ArrayList<Post>>() {
-            }.getType();
-
-            return GSON.fromJson(jsonReader, typeToken);
-        } catch (IOException e) {
-            System.err.println(e.getMessage() + e.getCause());
-            return null;
-        }
+            return getAllPosts();
     }
 
     @Override
     public Post save(Post post) {
-        List<Post> postList = getAll();
+        try {
+            List<Post> postList = getAllPosts();
 
-        if (postList == null || postList.isEmpty()) {
-            postList = new ArrayList<>();
-        }
+            if (postList == null || postList.isEmpty()) {
+                postList = new ArrayList<>();
+            }
 
-        Long newId = postList.stream()
-                .map(Post::getId)
-                .max(Long::compareTo)
-                .map(id -> id + 1)
-                .orElse(1L);
+            Long newId = postList.stream()
+                    .map(Post::getId)
+                    .max(Long::compareTo)
+                    .map(id -> id + 1)
+                    .orElse(1L);
 
-        post.setId(newId);
-        post.setStatus(Status.ACTIVE);
-        postList.add(post);
+            post.setId(newId);
+            post.setStatus(Status.ACTIVE);
+            postList.add(post);
 
-        try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
-            GSON.toJson(postList, fileWriter);
-            return post;
+            try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
+                GSON.toJson(postList, fileWriter);
+                return post;
+            }
         } catch (IOException e) {
             System.err.println(e.getMessage() + e.getCause());
             return null;
@@ -81,28 +69,27 @@ public class GsonPostRepoImpl implements PostRepo {
 
     @Override
     public Post update(Post postToUpdate) {
-        List<Post> postList = getAll();
+        try {
+            List<Post> postList = getAllPosts();
 
-        if (postList == null || postList.isEmpty()) {
-            System.err.println("Объект с ID " + postToUpdate.getId() + " не найден");
-            return null;
-        }
-
-        for (int i = 0; i < postList.size(); i++) {
-            Post post = postList.get(i);
-            if (postToUpdate.getId().equals(post.getId())) {
-                if (post.getStatus() == Status.ACTIVE) {
-                    postList.set(i, postToUpdate);
-                    break;
-                } else {
-                    System.err.println("Нельзя обновить удаленный объект c ID " + postToUpdate.getId());
-                    return null;
-                }
+            if (postList == null || postList.isEmpty()) {
+                System.err.println("Объект с ID " + postToUpdate.getId() + " не найден");
+                return null;
             }
-        }
 
-        try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
-            GSON.toJson(postList, fileWriter);
+            postList.forEach(post -> {
+                if (post.getId().equals(postToUpdate.getId())) {
+                    if (post.getStatus() == Status.ACTIVE) {
+                        post = postToUpdate;
+                    } else {
+                        System.err.println("Нельзя обновить удаленный объект c ID " + postToUpdate.getId());
+                    }
+                }
+            });
+
+            try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
+                GSON.toJson(postList, fileWriter);
+            }
         } catch (IOException e) {
             System.err.println(e.getMessage() + e.getCause());
             return null;
@@ -112,30 +99,43 @@ public class GsonPostRepoImpl implements PostRepo {
 
     @Override
     public void deleteById(Long id) {
-        List<Post> postList = getAll();
+        try {
+            List<Post> postList = getAllPosts();
 
-        if (postList == null || postList.isEmpty()) {
-            System.err.println("Объект с ID " + id + " не найден");
-            return;
-        }
-
-        for (Post post : postList) {
-            if (post.getId().equals(id)) {
-                if (post.getStatus() == Status.ACTIVE) {
-                    post.setStatus(Status.DELETED);
-                    break;
-                } else {
-                    System.err.println("Объект с ID " + id + " был удален");
-                    return;
-                }
+            if (postList == null || postList.isEmpty()) {
+                System.err.println("Объект с ID " + id + " не найден");
+                return;
             }
-        }
 
-        try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
-            GSON.toJson(postList, fileWriter);
-            System.out.println("Объект с ID " + id + " успешно удален");
+            postList.forEach(post -> {
+                if (post.getId().equals(id)) {
+                    if (post.getStatus() == Status.ACTIVE) {
+                        post.setStatus(Status.DELETED);
+                    } else {
+                        System.err.println("Объект с ID " + id + " был удален");
+                    }
+                }
+            });
+
+            try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
+                GSON.toJson(postList, fileWriter);
+                System.out.println("Объект с ID " + id + " успешно удален");
+            }
         } catch (IOException e) {
             System.err.println(e.getMessage() + e.getCause());
+        }
+    }
+
+    private List<Post> getAllPosts() {
+        try (JsonReader jsonReader = new JsonReader(new FileReader(FILE_PATH))) {
+            Type typeToken = new TypeToken<ArrayList<Post>>() {
+            }.getType();
+
+            return GSON.fromJson(jsonReader, typeToken);
+
+        } catch (IOException e) {
+            System.err.println(e.getMessage() + e.getCause());
+            return null;
         }
     }
 }

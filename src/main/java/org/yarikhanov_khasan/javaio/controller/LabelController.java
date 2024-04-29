@@ -2,11 +2,12 @@ package org.yarikhanov_khasan.javaio.controller;
 
 import org.yarikhanov_khasan.javaio.model.Label;
 import org.yarikhanov_khasan.javaio.repositoryImpl.GsonLabelRepoImpl;
+import org.yarikhanov_khasan.javaio.repositoryInterface.LabelRepo;
 
 import java.util.List;
 
 public class LabelController {
-    private GsonLabelRepoImpl labelRepo = new GsonLabelRepoImpl();
+    private final LabelRepo labelRepo = new GsonLabelRepoImpl();
 
     public Label getById(Long id) {
         return labelRepo.getById(id);

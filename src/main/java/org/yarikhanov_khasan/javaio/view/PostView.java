@@ -13,11 +13,11 @@ import java.util.Scanner;
 
 public class PostView {
 
-    private PostController postController = new PostController();
+    private final PostController postController = new PostController();
 
-    private LabelController labelController = new LabelController();
+    private final LabelController labelController = new LabelController();
 
-    private Scanner scanner = new Scanner(System.in);
+    private final Scanner scanner = new Scanner(System.in);
 
     public void run() {
         boolean running = true;
